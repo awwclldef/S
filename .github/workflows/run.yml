@@ -2,14 +2,17 @@ name: Scratch Ranking Update
 
 on:
   schedule:
-    # 毎日 日本時間 0:00 / 4:00 / 12:00 / 20:00 に実行する場合
-    # (UTCなので9時間引いて設定します)
+    # 毎日 日本時間 0:00, 4:00, 12:00, 20:00 に自動実行
+    # (UTC設定: 15:00, 19:00, 3:00, 11:00)
     - cron: '0 15,19,3,11 * * *'
-  workflow_dispatch: # 手動で実行ボタンを押せるようにする設定
+  workflow_dispatch: # ボタンから手動で実行できるようにする設定
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    # リポジトリへの書き込み権限を与える
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -27,15 +30,15 @@ jobs:
 
       - name: Run script
         env:
-          # ここでGitHubのSecretsをプログラムに渡す
+          # GitHubのSettings > Secretsで登録した値を使用
           SCRATCH_USERNAME: ${{ secrets.SCRATCH_USERNAME }}
           SCRATCH_PASSWORD: ${{ secrets.SCRATCH_PASSWORD }}
-        run: python your_filename.py  # ←ここにPythonのファイル名を入れてください
+        run: python main.py
 
-      - name: Commit and push HTML
+      - name: Commit and push changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git commit -m "Update ranking HTML" || exit 0
-          git push
+          # 変更がある場合のみコミット
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update ranking: $(date)" && git push)
